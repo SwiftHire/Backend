@@ -40,7 +40,6 @@ exports.getMe = async (req, res) => {
     }
 };
 
-
 exports.deleteUser = async (req, res) => {
     
     try {
@@ -57,16 +56,16 @@ exports.deleteUser = async (req, res) => {
             });
         }
         user.isArchived = true;
-        await user.save()
+        await user.save();
 
         //unsubscribe the user from mailing list
-        await unsubscribeUser(user.email)
+        await unsubscribeUser(user.email);
 
         // create deleted users tag
         const mailchimpData = {
             email: user.email,
-            tag_name: "deleted_users"
-            };
+            tag_name: 'deleted_users'
+        };
 
         await mailchimpTags(mailchimpData);
 
@@ -83,11 +82,10 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-
 exports.getUsers = async (req, res) => {
     try {
         
-        const users = await User.find()
+        const users = await User.find();
         if (!users) {
             return res.status(NOT_FOUND.status).send({
                 message: NOT_FOUND.message

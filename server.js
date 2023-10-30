@@ -5,8 +5,8 @@ const dbConfig = require('./app/config/db.config');
 const db = require('./app/models');
 const authRouter = require('./app/routes/auth.routes');
 const userRouter = require('./app/routes/user.routes');
+const indexRouter = require('./app/routes/index.routes');
 const rateLimiter = require('./app/middlewares/rateLimiter');
-
 
 const app = express();
 // disable response header that shows we're using Express
@@ -54,7 +54,7 @@ app.use(function(req, res, next) {
 
 app.use('/users', authRouter);
 app.use('/users', userRouter);
-
+app.use('/api', indexRouter);
 
 // simple route
 app.get('/users', (req, res) => {

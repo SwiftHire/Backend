@@ -13,7 +13,6 @@ const {
     emailValidationToken: EmailValidationToken,
 } = db;
 const { INTERNAL_SERVER_ERROR, BAD_REQUEST, NOT_FOUND, UNAUTHORIZED, FORBIDDEN } = require('../utils/errorMessages');
-const addCredits = require('../credits/addCredits');
 
 const invalidSignUpBody = (body) => !body.name || !body.email || !body.password;
 
@@ -25,17 +24,12 @@ const invalidResetPasswordBody = (body) => !body.token || !body.password;
 
 const invalidEmailValidationBody = (body) => !body.token;
 
-const MAILCHIMP_AUDIENCE_LIST_ID = process.env.MAILCHIMP_AUDIENCE_LIST_ID;  //audience list id
-const MAILCHIMP_AUDIENCE_API_KEY = process.env.MAILCHIMP_AUDIENCE_API_KEY; //audience api key
-
 const sendValidationEmailToUser =
     async (user, subject = 'Email validation', template = './template/email-validation.handlebars') => {
         // create a  new validation token
         const emailValidationToken = await EmailValidationToken.createValidationToken(user);
         const validationUrl = new URL(`${config.webBaseUrl}/validate-email`);
         validationUrl.searchParams.set('token', emailValidationToken.token);
-
-        console.log('[sendValidationEmailToUser] validationUrl: ', validationUrl.toString());
 
         sendEmail({
             from: 'contact@majorgen.com',
@@ -85,14 +79,6 @@ exports.signUp = async (req, res) => {
         const user = await userObj.save();
     
         console.log('[signUp] User saved to database:', user);
-    
-        await sendValidationEmailToUser(user, 'Welcome to Majorgen', './template/welcome.handlebars');
-    
-        console.log('[signUp] Validation email sent to user:', user.email);
-    
-        await addCredits(user._id, 1000);
-    
-        console.log('[signUp] Credits added to user:', user._id);
     
         return res.status(201).send({
             message: 'User was registered successfully!'
@@ -166,13 +152,6 @@ exports.signIn = async (req, res) => {
         user.roles.forEach((role) => authorities.push('ROLE_' + role.name.toUpperCase()));
 
         console.log('[signIn] User roles:', authorities);
-
-        // create signed_in tag
-        const mailchimpData = {
-            email: user.email,
-            tag_name: 'signed_in'
-        };
-        await mailchimpTags(mailchimpData);
         
         return res.send({
             id: user._id,
