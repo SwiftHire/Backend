@@ -8,6 +8,7 @@ exports.createJob = async (req, res) => {
         const { title, description } = req.body;
         const employerId = req.body.userId;
 
+
         const job = new Job({
             title,
             description,
@@ -60,7 +61,7 @@ exports.updateJob = async (req, res) => {
 
 exports.deleteJob = async (req, res) => {
     try {
-        const jobId = req.params.jobId;
+        const { jobId } = req.params;
 
         const job = await Job.findByIdAndDelete(jobId);
         if (!job) {
@@ -82,7 +83,7 @@ exports.deleteJob = async (req, res) => {
 
 exports.listEmployerJobs = async (req, res) => {
     try {
-        const employerId = req.body.userId;
+        const employerId = req.query.userId;
 
         const jobs = await Job.find({ employer: employerId });
         res.status(200).send({
@@ -178,7 +179,7 @@ exports.applyToJob = async (req, res) => {
             });
         }
 
-        // Check if the user has already applied
+        // Check if this specific user has already applied
         const hasApplied = job.applicants.some(applicant => 
             applicant.user && applicant.user.toString() === userId
         );
@@ -189,8 +190,8 @@ exports.applyToJob = async (req, res) => {
             });
         }
 
-        // Add new application
-        job.applicants.push({ user: userId, resume: req.body.resume }); // Assuming resume is provided in req.body
+        // Add new application for this user
+        job.applicants.push({ user: userId });
         await job.save();
 
         res.status(200).send({
@@ -221,6 +222,44 @@ exports.getAppliedJobs = async (req, res) => {
 
     } catch (error) {
         console.log('[getAppliedJobs] Error: ', error);
+        return res.status(INTERNAL_SERVER_ERROR.status).send({
+            message: INTERNAL_SERVER_ERROR.message
+        });
+    }
+};
+
+exports.getAllJobs = async (req, res) => {
+    try {
+        const jobs = await Job.find({});
+        res.status(200).send({
+            jobs,
+            message: 'All jobs retrieved successfully!'
+        });
+    } catch (error) {
+        console.log('[getAllJobs] Error: ', error);
+        return res.status(INTERNAL_SERVER_ERROR.status).send({
+            message: INTERNAL_SERVER_ERROR.message
+        });
+    }
+};
+
+exports.getJobDetails = async (req, res) => {
+    try {
+        const jobId = req.params.jobId;
+        const job = await Job.findById(jobId);
+
+        if (!job) {
+            return res.status(NOT_FOUND.status).send({
+                message: 'Job not found'
+            });
+        }
+
+        res.status(200).send({
+            job,
+            message: 'Job details retrieved successfully!'
+        });
+    } catch (error) {
+        console.log('[getJobDetails] Error: ', error);
         return res.status(INTERNAL_SERVER_ERROR.status).send({
             message: INTERNAL_SERVER_ERROR.message
         });

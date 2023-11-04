@@ -43,13 +43,14 @@ exports.upsertProfile = async (req, res) => {
 // Get own profile
 exports.getOwnProfile = async (req, res) => {
     try {
-        if (!req.body.userId) {
+        if (!req.query.userId) {
             return res.status(BAD_REQUEST.status).send({
                 message: `${BAD_REQUEST.message} Invalid user!`
             });
         }
+        console.log(req.query.userId, '*************** user id')
 
-        const profile = await Profile.findOne({ user: req.body.userId });
+        const profile = await Profile.find({ user: req.query.userId });
 
         if (!profile) {
             return res.status(NOT_FOUND.status).send({
