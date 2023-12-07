@@ -1,5 +1,5 @@
 const { BAD_REQUEST, NOT_FOUND, INTERNAL_SERVER_ERROR } = require('../utils/errorMessages');
-const { user: User } = require('../models');
+const { user: User } = require('../models'); 
 
 const Job = require('../models/job.model');
 
@@ -7,7 +7,6 @@ exports.createJob = async (req, res) => {
     try {
         const { title, description } = req.body;
         const employerId = req.body.userId;
-
 
         const job = new Job({
             title,
@@ -209,16 +208,28 @@ exports.applyToJob = async (req, res) => {
 // View jobs applied to
 exports.getAppliedJobs = async (req, res) => {
     try {
-        if (!req.body.userId) {
+        if (!req.query.userId) {
             return res.status(BAD_REQUEST.status).send({
                 message: `${BAD_REQUEST.message} Invalid user!`
             });
         }
 
-        // Adjust the query to match the user field inside the applicants array
-        const jobs = await Job.find({ 'applicants.user': req.body.userId });
+        // Adjust the query to return only necessary job details
+        const jobs = await Job.find({ 'applicants.user': req.query.userId })
+            .select('title description applicants.$');
 
-        res.status(200).send(jobs);
+        // Transform the data to include only the applicant's status for each job
+        const appliedJobs = jobs.map(job => {
+            const application = job.applicants.find(applicant => applicant.user.toString() === req.query.userId);
+            return {
+                jobId: job._id,
+                title: job.title,
+                description: job.description,
+                applicationStatus: application ? application.status : 'Unknown'
+            };
+        });
+
+        res.status(200).send(appliedJobs);
 
     } catch (error) {
         console.log('[getAppliedJobs] Error: ', error);
@@ -260,6 +271,33 @@ exports.getJobDetails = async (req, res) => {
         });
     } catch (error) {
         console.log('[getJobDetails] Error: ', error);
+        return res.status(INTERNAL_SERVER_ERROR.status).send({
+            message: INTERNAL_SERVER_ERROR.message
+        });
+    }
+};
+
+exports.getApplicantApplications = async (req, res) => {
+    try {
+        const userId = req.body.userId;
+
+        const jobs = await Job.find({
+            'applicants.user': userId
+        }).select('title description applicants');
+
+        const applications = jobs.map(job => ({
+            jobId: job._id,
+            title: job.title,
+            description: job.description,
+            status: job.applicants.find(applicant => applicant.user.toString() === userId)?.status || 'Unknown'
+        }));
+
+        res.status(200).send({
+            applications,
+            message: 'Applications retrieved successfully!'
+        });
+    } catch (error) {
+        console.log('[getApplicantApplications] Error: ', error);
         return res.status(INTERNAL_SERVER_ERROR.status).send({
             message: INTERNAL_SERVER_ERROR.message
         });
